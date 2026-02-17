@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2017 - 2021
+*  (C) COPYRIGHT AUTHORS, 2017 - 2026
 *
 *  TITLE:       AIC.C
 *
-*  VERSION:     3.56
+*  VERSION:     3.69
 *
-*  DATE:        30 July 2021
+*  DATE:        12 Feb 2026
 *
 * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
 * ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -152,6 +152,8 @@ BOOLEAN AicLaunchAdminProcess(
 
         }
         __except (EXCEPTION_EXECUTE_HANDLER) {
+            AicpAsyncCloseHandle(&asyncState);
+            RpcBindingFree(&rpcHandle);
             SetLastError(RpcExceptionCode());
             return FALSE;
         }

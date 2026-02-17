@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2025
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       FUSION.C
 *
-*  VERSION:     1.60
+*  VERSION:     1.61
 *
-*  DATE:        17 Jun 2025
+*  DATE:        12 Feb 2026
 *
 * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
 * ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -143,11 +143,55 @@ NTSTATUS SxsGetTocHeaderFromActivationContext(
 }
 
 /*
+* SxsAllocInitUnicodeString
+*
+* Purpose:
+*
+* Allocates a buffer, copies a UNICODE string from the specified offset and length
+* of a section header, and initializes a UNICODE_STRING structure.
+*
+*/
+NTSTATUS SxsAllocInitUnicodeString(
+    _In_ LPVOID SectionHeader,
+    _In_ SIZE_T Offset,
+    _In_ SIZE_T Length,
+    _Out_ UNICODE_STRING* Destination
+)
+{
+    WCHAR* Buffer;
+
+    if (!Destination || !SectionHeader || !Length)
+        return STATUS_INVALID_PARAMETER;
+
+    //
+    // Allocate memory for string with space for NULL-terminator.
+    //
+    Buffer = (WCHAR*)RtlAllocateHeap(NtCurrentPeb()->ProcessHeap, HEAP_ZERO_MEMORY, Length + sizeof(UNICODE_NULL));
+    if (!Buffer)
+        return STATUS_NO_MEMORY;
+
+    __try {
+        RtlCopyMemory(
+            Buffer,
+            (PBYTE)SectionHeader + Offset,
+            Length
+        );
+        RtlInitUnicodeString(Destination, Buffer);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, Buffer);
+        return STATUS_SXS_CORRUPTION;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/*
 * SxsGetStringSectionRedirectionDlls
 *
 * Purpose:
 *
-* Extract redirection dlls from string section entry.
+* Extracts redirection DLLs from a string section entry and populates a DLL redirection list.
 *
 */
 NTSTATUS SxsGetStringSectionRedirectionDlls(
@@ -157,8 +201,7 @@ NTSTATUS SxsGetStringSectionRedirectionDlls(
 )
 {
     ULONG SegmentIndex;
-    NTSTATUS result = STATUS_SXS_KEY_NOT_FOUND;
-    WCHAR* wszDllName = NULL;
+    NTSTATUS result = STATUS_SXS_KEY_NOT_FOUND, status;
     DLL_REDIRECTION_LIST_ENTRY* DllListEntry;
     ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_SEGMENT* DllPathSegment;
     ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION* DataDll;
@@ -180,24 +223,31 @@ NTSTATUS SxsGetStringSectionRedirectionDlls(
                     RtlAllocateHeap(NtCurrentPeb()->ProcessHeap, HEAP_ZERO_MEMORY, sizeof(DLL_REDIRECTION_LIST_ENTRY));
 
                 if (DllListEntry) {
-                    wszDllName = (WCHAR*)RtlAllocateHeap(NtCurrentPeb()->ProcessHeap, HEAP_ZERO_MEMORY, DllPathSegment->Length);
-                    if (wszDllName) {
-                        __try {
-                            RtlCopyMemory(
-                                wszDllName,
-                                ((PBYTE)SectionHeader) + DllPathSegment->Offset,
-                                DllPathSegment->Length);
+                    
+                    status = SxsAllocInitUnicodeString(
+                        SectionHeader,
+                        StringEntry->KeyOffset,
+                        StringEntry->KeyLength,
+                        &DllListEntry->KeyName);
 
-                            RtlInitUnicodeString(&DllListEntry->DllName, wszDllName);
-                        }
-                        __except (EXCEPTION_EXECUTE_HANDLER) {
-                            RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, wszDllName);
-                            RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, DllListEntry);
-                            return STATUS_SXS_CORRUPTION;
-                        }
-                    }
-                    else {
+                    if (!NT_SUCCESS(status)) {
                         RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, DllListEntry);
+                        if (status == STATUS_SXS_CORRUPTION)
+                            return status;
+                        continue;
+                    }
+
+                    status = SxsAllocInitUnicodeString(
+                        SectionHeader,
+                        DllPathSegment->Offset,
+                        DllPathSegment->Length,
+                        &DllListEntry->DllName);
+
+                    if (!NT_SUCCESS(status)) {
+                        RtlFreeUnicodeString(&DllListEntry->KeyName);
+                        RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, DllListEntry);
+                        if (status == STATUS_SXS_CORRUPTION)
+                            return status;
                         continue;
                     }
 
@@ -333,10 +383,12 @@ NTSTATUS FusionProbeForRedirectedDlls(
                     RtlSecureZeroMemory(&FusionRedirectedDll, sizeof(FusionRedirectedDll));
                     FusionRedirectedDll.DataType = UacFusionDataRedirectedDllType;
                     FusionRedirectedDll.FileName = lpFileName;
+                    FusionRedirectedDll.KeyName = DllData->KeyName.Buffer;
                     FusionRedirectedDll.DllName = DllData->DllName.Buffer;
                     OutputCallback((PVOID)&FusionRedirectedDll);
 
                     RtlFreeUnicodeString(&DllData->DllName);
+                    RtlFreeUnicodeString(&DllData->KeyName);
                     RtlFreeHeap(NtCurrentPeb()->ProcessHeap, 0, DllData);
                 }
                 DllList.Depth--;

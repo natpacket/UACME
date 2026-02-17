@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2020 - 2025
+*  (C) COPYRIGHT AUTHORS, 2020 - 2026
 *
 *  TITLE:       FUSUTIL.C
 *
 *  VERSION:     3.69
 *
-*  DATE:        07 Jul 2025
+*  DATE:        12 Feb 2026
 *
 * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
 * ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -663,9 +663,7 @@ BOOL fusUtilFindFileByMVIDCallback(
 }
 
 #define NI_DLL_EXT L".ni.dll"
-#define NI_DLL_EXT_SIZE (sizeof(NI_DLL_EXT) - sizeof(UNICODE_NULL))
 #define NI_DLL_AUX_EXT L".ni.dll.aux"
-#define NI_DLL_AUX_EXT_SIZE (sizeof(NI_DLL_EXT) - sizeof(UNICODE_NULL))
 
 /*
 * fusUtilCombineNativeImageCacheName

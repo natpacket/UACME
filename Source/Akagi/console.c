@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2022 - 2025
+*  (C) COPYRIGHT AUTHORS, 2022 - 2026
 *
 *  TITLE:       CONSOLE.C
 *
 *  VERSION:     3.69
 *
-*  DATE:        07 Jul 2025
+*  DATE:        12 Feb 2026
 *
 *  Debug console.
 *
@@ -114,7 +114,7 @@ VOID ConsoleRelease(
     VOID
 )
 {
-    DWORD dwStop = GetTickCount() + (10 * 1000);
+    DWORD dwStart = GetTickCount();
     HANDLE nStdHandle = GetStdHandle(STD_INPUT_HANDLE);
 
     if (nStdHandle == NULL || nStdHandle == INVALID_HANDLE_VALUE) {
@@ -125,7 +125,7 @@ VOID ConsoleRelease(
     ConsolePrint(TEXT("[+] Press Enter to exit or wait few seconds and it will close automatically\r\n"));
 
     FlushConsoleInputBuffer(nStdHandle);
-    while (!ConsoleIsKeyPressed(VK_RETURN) && GetTickCount() < dwStop)
+    while (!ConsoleIsKeyPressed(VK_RETURN) && (GetTickCount() - dwStart) < (10 * 1000))
         Sleep(50);
 
     FreeConsole();

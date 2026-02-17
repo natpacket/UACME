@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2025
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       MAIN.C
 *
-*  VERSION:     1.60
+*  VERSION:     1.61
 *
-*  DATE:        18 Jun 2025
+*  DATE:        12 Feb 2026
 *
 *  Program entry point.
 *
@@ -224,7 +224,7 @@ VOID WINAPI FusionOutputCallback(
 {
     LPWSTR lpText;
     LPWSTR lpLog = NULL;
-    SIZE_T sz = 0, fileNameLen, prefixLen, bufferChars;
+    SIZE_T sz = 0, keyNameLen, dllNameLen, prefixLen, bufferChars;
     UAC_FUSION_DATA_DLL* Dll;
 
     if (Data == NULL)
@@ -317,18 +317,16 @@ VOID WINAPI FusionOutputCallback(
     if (Data->DataType == UacFusionDataRedirectedDllType) {
         Dll = (UAC_FUSION_DATA_DLL*)Data;
 
-        if (Dll->DllName == NULL || Dll->FileName == NULL)
+        if (Dll->DllName == NULL || Dll->KeyName == NULL)
             return;
 
-        sz = _strlen(Dll->DllName);
-        if (sz == 0 || sz > MAXDWORD - MAX_PATH)
+        keyNameLen = _strlen(Dll->KeyName);
+        dllNameLen = _strlen(Dll->DllName);
+
+        if (keyNameLen == 0 || dllNameLen == 0 || keyNameLen > MAXDWORD - dllNameLen - MAX_PATH)
             return;
 
-        fileNameLen = _strlen(Dll->FileName);
-        if (fileNameLen == 0 || fileNameLen > MAXDWORD - sz - MAX_PATH)
-            return;
-
-        sz += fileNameLen + MAX_PATH;
+        sz = keyNameLen + dllNameLen + MAX_PATH;
         lpLog = (LPWSTR)supHeapAlloc(sz);
         if (lpLog) {
             bufferChars = sz;
@@ -336,15 +334,15 @@ VOID WINAPI FusionOutputCallback(
             _strcpy(lpLog, TEXT("DllRedirection: "));
             prefixLen = _strlen(TEXT("DllRedirection: "));
 
-            if (prefixLen + fileNameLen + 4 + _strlen(Dll->DllName) < bufferChars) {
-                _strcat(lpLog, Dll->FileName);
+            if (prefixLen + keyNameLen + 4 + dllNameLen < bufferChars) {
+                _strcat(lpLog, Dll->KeyName); // original DLL name from KeyName
                 _strcat(lpLog, TEXT(" -> "));
-                _strcat(lpLog, Dll->DllName);
+                _strcat(lpLog, Dll->DllName); // redirected DLL path
 
                 LoggerWrite(g_LogFile, lpLog, TRUE);
             }
 
-            HeapFree(GetProcessHeap(), 0, lpLog);
+            supHeapFree(lpLog);
         }
     }
 }

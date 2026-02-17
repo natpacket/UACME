@@ -1,12 +1,12 @@
 #/*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2020
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       FUSION.H
 *
-*  VERSION:     1.49
+*  VERSION:     1.61
 *
-*  DATE:        11 Nov 2020
+*  DATE:        12 Feb 2026
 *
 *  Header file for the autoelevated applications scan.
 *
@@ -42,12 +42,15 @@ typedef struct _UAC_FUSION_DATA {
 typedef struct _UAC_FUSION_DATA_DLL {
     DWORD DataType;
     LPWSTR FileName;
+    LPWSTR KeyName;
     LPWSTR DllName;
 } UAC_FUSION_DATA_DLL, *PUAC_FUSION_DATA_DLL;
 
 typedef struct _DLL_REDIRECTION_LIST_ENTRY {
     SLIST_ENTRY ListEntry;
-    UNICODE_STRING DllName; //For release RtlFreeUnicodeString used, Buffer allocated in Process Heap
+    //For release RtlFreeUnicodeString used, Buffer of both allocated in Process Heap
+    UNICODE_STRING KeyName;
+    UNICODE_STRING DllName; 
 } DLL_REDIRECTION_LIST_ENTRY, *PDLL_REDIRECTION_ENTRY;
 
 typedef struct _DLL_REDIRECTION_LIST {

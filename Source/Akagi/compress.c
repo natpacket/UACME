@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2014 - 2025
+*  (C) COPYRIGHT AUTHORS, 2014 - 2026
 *
 *  TITLE:       COMPRESS.C
 *
 *  VERSION:     3.69
 *
-*  DATE:        07 Jul 2025
+*  DATE:        12 Feb 2026
 *
 *  Compression and encoding/decoding support.
 *
@@ -151,8 +151,11 @@ BOOL IsValidContainerHeader(
 
         HeaderCrc = UnitHeader->HeaderCrc;
         UnitHeader->HeaderCrc = 0;
-        if (RtlComputeCrc32(0, UnitHeader, sizeof(DCU_HEADER)) != HeaderCrc)
+        if (RtlComputeCrc32(0, UnitHeader, sizeof(DCU_HEADER)) != HeaderCrc) {
+            UnitHeader->HeaderCrc = HeaderCrc;
             return FALSE;
+        }
+        UnitHeader->HeaderCrc = HeaderCrc;
 
         if ((UnitHeader->cbData == 0) ||
             (UnitHeader->cbDeltaSize == 0))
@@ -514,7 +517,7 @@ PVOID DecompressPayload(
 
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        return NULL;
+        bResult = FALSE;
     }
 
     if (pbSecret) supHeapFree(pbSecret);

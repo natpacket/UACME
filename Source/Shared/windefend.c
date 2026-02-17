@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2015 - 2025
+*  (C) COPYRIGHT AUTHORS, 2015 - 2026
 *
 *  TITLE:       WINDEFEND.C
 *
 *  VERSION:     3.69
 *
-*  DATE:        07 Jul 2025
+*  DATE:        12 Feb 2026
 *
 *  MSE / Windows Defender anti-emulation part.
 *
@@ -99,7 +99,7 @@ DWORD wdxEmulatorAPIHashTable[] = {
 };
 
 PVOID wdxGetProcedureAddressByHash(
-    _In_ PVOID MpClientBase,
+    _In_ PVOID ImageBase,
     _In_ DWORD ProcedureHash);
 
 

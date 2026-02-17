@@ -299,52 +299,57 @@ BOOL supConcatenatePaths(
 )
 {
     SIZE_T TargetLength, PathLength;
-    BOOL TrailingBackslash, LeadingBackslash;
+    BOOL NeedSeparator;
     SIZE_T EndingLength;
+    SIZE_T i;
 
     if (Target == NULL || Path == NULL || TargetBufferSize == 0)
         return FALSE;
 
+    // Find current target length.
     TargetLength = 0;
-    while (Target[TargetLength] != 0 && TargetLength < TargetBufferSize)
+    while (TargetLength < TargetBufferSize && Target[TargetLength] != 0)
         TargetLength++;
 
-    if (TargetLength >= TargetBufferSize) 
+    if (TargetLength >= TargetBufferSize)
         return FALSE;
 
+    // Strip trailing backslash from target, but preserve a lone backslash.
+    if (TargetLength > 0 && Target[TargetLength - 1] == TEXT('\\')) {
+        // Do not strip if the target is exactly a single backslash.
+        if (!(TargetLength == 1 && Target[0] == TEXT('\\')))
+        {
+            TargetLength--;
+        }
+    }
+
+    // Strip leading backslash from path only if target is non‑empty.
+    if (TargetLength > 0 && Path[0] == TEXT('\\'))
+        Path++;
+
+    // Find path length (after possible stripping).
     PathLength = 0;
     while (Path[PathLength] != 0)
         PathLength++;
 
-    if (TargetLength > 0 && Target[TargetLength - 1] == TEXT('\\')) {
-        TrailingBackslash = TRUE;
-        TargetLength--;
-    }
-    else {
-        TrailingBackslash = FALSE;
-    }
+    // Determine if a separator is needed based on target's last character.
+    NeedSeparator = (TargetLength > 0 && Target[TargetLength - 1] != TEXT('\\'));
 
-    LeadingBackslash = (Path[0] == TEXT('\\'));
-    if (LeadingBackslash) {
-        Path++;
-        PathLength--;
-    }
-
-    EndingLength = TargetLength + PathLength + ((!LeadingBackslash && !TrailingBackslash) ? 1 : 0) + 1; // +1 for NULL
+    EndingLength = TargetLength + (NeedSeparator ? 1 : 0) + PathLength + 1;
 
     if (EndingLength > TargetBufferSize)
         return FALSE;
 
-    if (!LeadingBackslash && !TrailingBackslash) {
+    // Insert separator if needed.
+    if (NeedSeparator) {
         Target[TargetLength] = TEXT('\\');
         TargetLength++;
     }
 
-    for (SIZE_T i = 0; i < PathLength && (TargetLength + i + 1) < TargetBufferSize; i++) {
+    // Copy the path.
+    for (i = 0; i < PathLength; i++)
         Target[TargetLength + i] = Path[i];
-    }
 
-    Target[EndingLength - 1] = 0;
-
-    return (EndingLength <= TargetBufferSize);
+    Target[TargetLength + PathLength] = 0;
+    return TRUE;
 }

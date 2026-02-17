@@ -1,12 +1,12 @@
 /*******************************************************************************
 *
-*  (C) COPYRIGHT AUTHORS, 2015 - 2025
+*  (C) COPYRIGHT AUTHORS, 2015 - 2026
 *
 *  TITLE:       SUP.C
 *
 *  VERSION:     3.69
 *
-*  DATE:        14 Dec 2025
+*  DATE:        12 Feb 2026
 *
 * THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
 * ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -3908,17 +3908,14 @@ BOOL supConcatenatePaths(
 )
 {
     SIZE_T TargetLength, PathLength;
-    BOOL TrailingBackslash, LeadingBackslash;
+    BOOL NeedSeparator;
     SIZE_T EndingLength;
-    SIZE_T CopyLength;
     SIZE_T i;
 
     if (Target == NULL || Path == NULL || TargetBufferSize == 0)
         return FALSE;
 
-    //
     // Find current target length.
-    //
     TargetLength = 0;
     while (TargetLength < TargetBufferSize && Target[TargetLength] != 0)
         TargetLength++;
@@ -3926,60 +3923,43 @@ BOOL supConcatenatePaths(
     if (TargetLength >= TargetBufferSize)
         return FALSE;
 
-    //
-    // Find path length.
-    //
+    // Strip trailing backslash from target, but preserve a lone backslash.
+    if (TargetLength > 0 && Target[TargetLength - 1] == TEXT('\\')) {
+        // Do not strip if the target is exactly a single backslash.
+        if (!(TargetLength == 1 && Target[0] == TEXT('\\')))
+        {
+            TargetLength--;
+        }
+    }
+
+    // Strip leading backslash from path only if target is non‑empty.
+    if (TargetLength > 0 && Path[0] == TEXT('\\'))
+        Path++;
+
+    // Find path length (after possible stripping).
     PathLength = 0;
     while (Path[PathLength] != 0)
         PathLength++;
 
-    //
-    // LeadingBackslash is used to decide whether to add an extra separator.
-    //
-    if (TargetLength > 0 && Target[TargetLength - 1] == TEXT('\\')) {
-        TrailingBackslash = TRUE;
-        TargetLength--;
-    }
-    else {
-        TrailingBackslash = FALSE;
-    }
+    // Determine if a separator is needed based on target's last character.
+    NeedSeparator = (TargetLength > 0 && Target[TargetLength - 1] != TEXT('\\'));
 
-    LeadingBackslash = (Path[0] == TEXT('\\')) ? TRUE : FALSE;
-
-    //
-    // Compute required length.
-    //
-    EndingLength = TargetLength + PathLength + 1; // +1 for NULL
-
-    //
-    // Add separator only when Path does not already start with '\'.
-    //
-    if (!LeadingBackslash) {
-        EndingLength += 1; // for '\'
-    }
+    EndingLength = TargetLength + (NeedSeparator ? 1 : 0) + PathLength + 1;
 
     if (EndingLength > TargetBufferSize)
         return FALSE;
 
-    //
     // Insert separator if needed.
-    //
-    if (!LeadingBackslash) {
+    if (NeedSeparator) {
         Target[TargetLength] = TEXT('\\');
         TargetLength++;
     }
 
-    //
-    // Copy Path (including its leading '\' if present).
-    //
-    CopyLength = EndingLength - TargetLength - 1; // excluding NULL
-
-    for (i = 0; i < CopyLength; i++) {
+    // Copy the path.
+    for (i = 0; i < PathLength; i++)
         Target[TargetLength + i] = Path[i];
-    }
 
-    Target[EndingLength - 1] = 0;
-
+    Target[TargetLength + PathLength] = 0;
     return TRUE;
 }
 
